@@ -26,14 +26,15 @@ class Tracer implements API\Tracer
     public function __construct(
         TracerProvider $provider,
         ResourceInfo $resource,
-        API\SpanContext $context = null
+        API\SpanContext $context = null,
+        ?API\SpanContext $parentSpanContext = null
     ) {
         $this->provider = $provider;
         $this->resource = $resource;
         $context = $context ?: SpanContext::generate();
 
         // todo: hold up, why do we automatically make a root Span?
-        $this->active = $this->generateSpanInstance('tracer', $context);
+        $this->active = $this->generateSpanInstance('tracer', $context, $parentSpanContext);
     }
 
     /**
@@ -115,11 +116,13 @@ class Tracer implements API\Tracer
         }
     }
 
-    private function generateSpanInstance($name, API\SpanContext $context): Span
+    private function generateSpanInstance($name, API\SpanContext $context, ?API\SpanContext $parentSpanContext = null): Span
     {
         $parent = null;
         if ($this->active) {
             $parent = $this->getActiveSpan()->getContext();
+        } elseif ($parentSpanContext !== null) {
+            $parent = $parentSpanContext;
         }
         $span = new Span($name, $context, $parent);
         $this->spans[] = $span;
